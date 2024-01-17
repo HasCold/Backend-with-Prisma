@@ -1,0 +1,68 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js" // prisma client is a geneartor creates a library ; In the script.js file Prisma library that allows you to interact with your code through this Prisma library
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// There are three types of relationship in mysql 
+// 1. One to Many
+// 2. Many to Many
+// 3. One to One
+
+model User {
+  id               String           @id @default(uuid()) // Both are same autoincrement() and uuid() but the uuid() is more secure. uuid() are completely random and unique
+  age              Int
+  name             String? // The ? mark means is optional for the name field
+  email            String           @unique
+  role             Role             @default(BASIC)
+  blob             Bytes? // file data that you want to convert raw bytes information
+  // support     Unsupported("") // That data type that will be not supported in prisma so the field is set to be unsupported 
+  writtenPosts     Post[]           @relation("writtenPosts") // One to many relationship 
+  favoritePosts    Post[]           @relation("favoritePosts") // Many to many relationship 
+  userPreference   UserPreferences? @relation(fields: [userPreferenceId], references: [id])
+  userPreferenceId String?          @unique // It has single user preference not an array so its unique 
+
+  // This is a block-level attribute on uniqueness 
+  @@unique([name, age]) // we have a uniqueness constraints on age and name means there are no any two people that have same age and name 
+  @@index([email]) // sorting on the basis on index
+}
+
+model UserPreferences {
+  id           String  @id @default(uuid())
+  emailUpdates Boolean
+  user         User?
+}
+
+model Post {
+  id            String     @id @default(uuid())
+  title         String
+  averageRating Float
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt // when we update the post it automatically updates them 
+  author        User       @relation("writtenPosts", fields: [authorId], references: [id])
+  authorId      String
+  favoritedBy   User?      @relation("favoritePosts", fields: [favoritedById], references: [id])
+  favoritedById String?
+  categories    Category[] // We don't need to explicity define the Category model by @relation
+
+  // This is a block based attribute
+  // @@id([title, authorId]) // Composite attribute that contains two things ; we are saying that title and authorId will represent the unique id of a model
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
+}
+
+enum Role {
+  BASIC
+  EDITOR
+  ADMIN
+}
